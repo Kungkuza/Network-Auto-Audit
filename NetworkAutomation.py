@@ -1,5 +1,6 @@
 import json
 import getpass
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from netmiko import ConnectHandler
 from netmiko.exceptions import NetMikoTimeoutException, NetMikoAuthenticationException
@@ -20,19 +21,23 @@ def audit_single_device(device_info, username, password, config_commands):
         "status": "Success",
         "passed": [],
         "failed": [],
-        "error": None
+        "error": None,
+        "execution_time": 0
     }
     
-    # Complete the device dictionary for Netmiko
-    device_info.update({
+    # Clean up tracking keys before passing to Netmiko
+    netmiko_device = {
+        'host': device_info['host'],
+        'device_type': device_info['device_type'],
+        'port': device_info.get('port', 22),
         'username': username,
         'password': password,
         'secret': password,
-    })
+    }
 
     try:
         print(f"[+] [Thread-{ip}] Connecting...")
-        with ConnectHandler(**device_info) as ssh_conn:
+        with ConnectHandler(**netmiko_device) as ssh_conn:
             ssh_conn.enable()
 
             # 1. Configuration Phase
@@ -67,56 +72,71 @@ def audit_single_device(device_info, username, password, config_commands):
     return report
 
 def main():
-    # Load external inventory
     try:
         devices = load_inventory("devices.json")
     except FileNotFoundError:
         print("[!] Error: 'devices.json' inventory file not found.")
         return
 
-    # User credentials
     username = input("Enter SSH Username: ")
     password = getpass.getpass("Enter SSH Password: ")
 
-    # Standard configuration payload to push
     commands_to_deploy = [
         "interface GigabitEthernet0/1",
-        "description Managed by Multi-Threaded Automation Framework",
+        "description Managed by NetworkAutomation Framework",
         "exit"
     ]
 
-    # Set maximum worker threads (adjust based on inventory size and CPU limits)
     MAX_THREADS = 10 
     
+    # Start global performance timer
+    global_start_time = time.time()
     print(f"\n[*] Starting parallel automation run against {len(devices)} devices...")
     
     final_reports = []
 
-    # Using ThreadPoolExecutor to handle concurrent SSH connections
     with ThreadPoolExecutor(max_workers=MAX_THREADS) as executor:
-        # Submit tasks to the thread pool
-        futures = {
-            executor.submit(audit_single_device, device, username, password, commands_to_deploy): device['host'] 
-            for device in devices
-        }
+        futures = {}
+        for device in devices:
+            device['start_time'] = time.time() 
+            task = executor.submit(audit_single_device, device, username, password, commands_to_deploy)
+            futures[task] = device['host']
         
-        # As threads finish, gather results dynamically
         for future in as_completed(futures):
             device_ip = futures[future]
             try:
                 result = future.result()
+                
+                # Calculate individual device duration
+                orig_device = next(d for d in devices if d['host'] == device_ip)
+                elapsed = time.time() - orig_device['start_time']
+                result['execution_time'] = round(elapsed, 2)
+                
                 final_reports.append(result)
-                print(f"[✓] Finished processing: {device_ip}")
+                print(f"[✓] Finished processing: {device_ip} (Took {result['execution_time']}s)")
             except Exception as exc:
                 print(f"[!] Thread running {device_ip} generated an exception: {exc}")
 
-    # --- Consolidated Audit Reporting Output ---
+    # Calculate Global Telemetry Metrics
+    global_elapsed_time = round(time.time() - global_start_time, 2)
+    successful_runs = [r for r in final_reports if r['status'] == "Success"]
+    failed_runs = [r for r in final_reports if r['status'] == "Failed"]
+    
+    if successful_runs:
+        fastest = min(successful_runs, key=lambda x: x['execution_time'])
+        slowest = max(successful_runs, key=lambda x: x['execution_time'])
+        avg_time = round(sum(r['execution_time'] for r in successful_runs) / len(successful_runs), 2)
+    else:
+        fastest = slowest = {"host": "N/A", "execution_time": 0}
+        avg_time = 0
+
+    # --- Consolidated Telemetry & Audit Reporting Output ---
     print("\n" + "="*50)
     print("               CONSOLIDATED AUDIT REPORT              ")
     print("="*50)
     
     for report in final_reports:
-        print(f"\n>> Device: {report['host']} | Status: {report['status']}")
+        print(f"\n>> Device: {report['host']} | Status: {report['status']} ({report.get('execution_time', 0)}s)")
         if report['status'] == "Failed":
             print(f"   Error Details: {report['error']}")
             continue
@@ -129,6 +149,17 @@ def main():
             print(f"     ✗ {fail_msg}")
             
     print("\n" + "="*50)
+    print("                 EXECUTION TELEMETRY                  ")
+    print("="*50)
+    print(f" Total Devices Processed : {len(devices)}")
+    print(f" Successful Runs         : {len(successful_runs)}")
+    print(f" Failed Runs             : {len(failed_runs)}")
+    print(f" Total Execution Time    : {global_elapsed_time} seconds")
+    print(f" Avg Time Per Device     : {avg_time} seconds")
+    if successful_runs:
+        print(f" Fastest Responder       : {fastest['host']} ({fastest['execution_time']}s)")
+        print(f" Slowest Responder       : {slowest['host']} ({slowest['execution_time']}s)")
+    print("="*50)
 
 if __name__ == "__main__":
     main()

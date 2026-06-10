@@ -4,7 +4,7 @@ from NetworkAutomation import audit_single_device
 
 class TestNetworkTool(unittest.TestCase):
 
-    @patch('network_automator.ConnectHandler')
+    @patch('NetworkAutomation.ConnectHandler')
     def test_successful_audit(self, mock_connect_handler):
         """Test that a successful SSH connection processes audit rules correctly."""
         mock_ssh = MagicMock()
