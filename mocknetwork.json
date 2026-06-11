@@ -1,0 +1,222 @@
+[
+  {
+    "hostname": "core-rt01.prod.local",
+    "ip_address": "192.168.56.11",
+    "device_type": "cisco_ios",
+    "expected_status": "COMPLIANT",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname core-rt01.prod.local\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input ssh\n ip domain-name lab.local"
+    },
+    "test_case_intent": "Control baseline. This device is fully hardened and should pass every audit check perfectly."
+  },
+  {
+    "hostname": "edge-rt02.prod.local",
+    "ip_address": "192.168.56.12",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname edge-rt02.prod.local\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input telnet ssh"
+    },
+    "test_case_intent": "Security vulnerability. Tests if your script catches 'transport input telnet ssh' allowing insecure cleartext connections."
+  },
+  {
+    "hostname": "dist-sw01.prod.local",
+    "ip_address": "192.168.56.99",
+    "device_type": "cisco_ios",
+    "expected_status": "TIMEOUT",
+    "mock_behavior": {
+      "ssh_response": "no_route_to_host",
+      "cli_output_show_run": ""
+    },
+    "test_case_intent": "Dead node timeout. Tests if your multi-threaded loop handles a completely offline IP without blocking the execution threads of the other 19 devices."
+  },
+  {
+    "hostname": "access-sw02.prod.local",
+    "ip_address": "192.168.56.14",
+    "device_type": "cisco_ios",
+    "expected_status": "AUTH_FAILURE",
+    "mock_behavior": {
+      "ssh_response": "bad_credentials",
+      "cli_output_show_run": ""
+    },
+    "test_case_intent": "Credential rotation mismatch. Tests if your tool cleanly handles a Netmiko AuthenticationException instead of crashing out."
+  },
+  {
+    "hostname": "juniper-edge01.prod.local",
+    "ip_address": "192.168.56.15",
+    "device_type": "juniper_junos",
+    "expected_status": "COMPLIANT",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "system {\n    services {\n        ssh;\n    }\n}"
+    },
+    "test_case_intent": "Multi-vendor parser test. Confirms your script routes Juniper devices through a different validation logic tree since it doesn't use standard Cisco syntax."
+  },
+  {
+    "hostname": "core-rt02.prod.local",
+    "ip_address": "192.168.56.16",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname core-rt02.prod.local\nline vty 0 4\n transport input ssh"
+    },
+    "test_case_intent": "Missing domain name vulnerability. If 'ip domain-name' isn't explicitly configured, SSH keys cannot regenerate upon device reboots."
+  },
+  {
+    "hostname": "unnamed-node.prod.local",
+    "ip_address": "192.168.56.17",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname Router\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input ssh"
+    },
+    "test_case_intent": "Default hostname alert. Tests if your code flags a device that never had its factory name 'Router' changed."
+  },
+  {
+    "hostname": "wan-rt01.prod.local",
+    "ip_address": "192.168.56.18",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname wan-rt01.prod.local\nusername admin privilege 1 password 7 0832585B1D1C1B\nline vty 0 4\n transport input ssh"
+    },
+    "test_case_intent": "Weak password hashing. Tests if your audit flags type-7 legacy encryption or low privilege levels (privilege 1 instead of 15)."
+  },
+  {
+    "hostname": "access-sw03.prod.local",
+    "ip_address": "192.168.56.19",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname access-sw03.prod.local\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input none"
+    },
+    "test_case_intent": "Misconfigured vty lines. 'transport input none' completely blocks external management connectivity, simulating an administrative lockout."
+  },
+  {
+    "hostname": "dmz-fw01.prod.local",
+    "ip_address": "192.168.56.20",
+    "device_type": "cisco_asa",
+    "expected_status": "COMPLIANT",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname dmz-fw01.prod.local\nssh version 2\nssh 0.0.0.0 0.0.0.0 inside"
+    },
+    "test_case_intent": "Firewall variant test. Evaluates how your script handles Cisco ASA/FTD syntax quirks which differ significantly from standard IOS switches."
+  },
+  {
+    "hostname": "dist-sw02.prod.local",
+    "ip_address": "10.255.255.1",
+    "device_type": "cisco_ios",
+    "expected_status": "TIMEOUT",
+    "mock_behavior": {
+      "ssh_response": "connection_refused",
+      "cli_output_show_run": ""
+    },
+    "test_case_intent": "Connection refused edge case. Tests if your tool cleanly logs an active rejection (TCP RST packet) versus a quiet drop."
+  },
+  {
+    "hostname": "branch-rt01.prod.local",
+    "ip_address": "192.168.56.22",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname branch-rt01.prod.local\nsnmp-server community public RO"
+    },
+    "test_case_intent": "SNMP compliance bug. Verifies if your audit checks catch standard default read-only strings ('public') or write strings ('private')."
+  },
+  {
+    "hostname": "branch-rt02.prod.local",
+    "ip_address": "192.168.56.23",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname branch-rt02.prod.local\nno service password-encryption"
+    },
+    "test_case_intent": "Plaintext password storage. Verifies if your engine flags a missing global encryption configuration statement."
+  },
+  {
+    "hostname": "voip-sw01.prod.local",
+    "ip_address": "192.168.56.24",
+    "device_type": "cisco_ios",
+    "expected_status": "COMPLIANT",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname voip-sw01.prod.local\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input ssh"
+    },
+    "test_case_intent": "Clean validation pass. Normal control group device to measure execution speed on successful operations."
+  },
+  {
+    "hostname": "iot-gate01.prod.local",
+    "ip_address": "192.168.56.25",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname iot-gate01.prod.local\nip http server\nno ip http secure-server"
+    },
+    "test_case_intent": "Insecure HTTP management web service enabled. Tests if your tool searches beyond the line vty parameters into HTTP servers."
+  },
+  {
+    "hostname": "core-sw01.prod.local",
+    "ip_address": "192.168.56.26",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname core-sw01.prod.local\nntp server 200.1.1.1"
+    },
+    "test_case_intent": "Configuration drift check. Relies on checking if the device is sync'd to an unapproved, unauthenticated public time reference."
+  },
+  {
+    "hostname": "core-sw02.prod.local",
+    "ip_address": "192.168.56.27",
+    "device_type": "cisco_ios",
+    "expected_status": "COMPLIANT",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname core-sw02.prod.local\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input ssh"
+    },
+    "test_case_intent": "Clean validation pass. Ensures multiple compliant devices don't step on each other's data pipelines during output generation."
+  },
+  {
+    "hostname": "lab-rt99.prod.local",
+    "ip_address": "192.168.56.254",
+    "device_type": "cisco_ios",
+    "expected_status": "TIMEOUT",
+    "mock_behavior": {
+      "ssh_response": "host_unreachable",
+      "cli_output_show_run": ""
+    },
+    "test_case_intent": "Subnet routing loop simulation. Exercises your execution framework's maximum timeout thresholds."
+  },
+  {
+    "hostname": "backbone-sw01.prod.local",
+    "ip_address": "192.168.56.29",
+    "device_type": "cisco_ios",
+    "expected_status": "VULNERABLE",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname backbone-sw01.prod.local\nline aux 0\n transport input telnet"
+    },
+    "test_case_intent": "Auxiliary port backdoor leakage. Validates if your regex scans beyond standard VTY lines into old legacy AUX line parameters."
+  },
+  {
+    "hostname": "pci-sw01.prod.local",
+    "ip_address": "192.168.56.30",
+    "device_type": "cisco_ios",
+    "expected_status": "COMPLIANT",
+    "mock_behavior": {
+      "ssh_response": "banner",
+      "cli_output_show_run": "hostname pci-sw01.prod.local\nusername admin privilege 15 secret Cisco123\nline vty 0 4\n transport input ssh"
+    },
+    "test_case_intent": "Clean validation pass. Final tail-end device to certify execution consistency across the thread stack."
+  }
+]
